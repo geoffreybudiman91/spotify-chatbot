@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import ChatWindow from "./ChatWindow";
-import InputBar from "./InputBar";
-import Header from "./Header";
+import ChatWindow from "./components/ChatWindow";
+import InputBar from "./components/InputBar";
+import Header from "./components/Header";
 import "./App.css";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:5000";

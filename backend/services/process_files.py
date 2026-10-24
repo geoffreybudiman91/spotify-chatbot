@@ -1,5 +1,6 @@
 import sqlite3
 import json
+from config import DB_PATH
 
 def validate_json_entry(entry, required_keys):
     """Validate a single JSON entry against the required keys."""
@@ -9,7 +10,7 @@ def validate_json_entry(entry, required_keys):
     return True, ""
 
 def process_json_files(file_paths):
-    conn = sqlite3.connect("database.db")
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     cursor.execute("""

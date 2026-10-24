@@ -1,7 +1,9 @@
 import openai
 import sqlite3
 import os
+from pathlib import Path
 from dotenv import load_dotenv
+from config import DB_PATH
 
 load_dotenv()
 openai.api_key = os.getenv('OPENAI_API_KEY')
@@ -33,15 +35,22 @@ def generate_sql_query(prompt):
     except openai.OpenAIError as e:
         return f"Error generating query: {str(e)}"
 
+# The query comes from the LLM, so it runs on a read-only connection and the
+# authorizer rejects anything that isn't a plain read (ATTACH, PRAGMA, writes, ...).
+ALLOWED_SQL_ACTIONS = {sqlite3.SQLITE_SELECT, sqlite3.SQLITE_READ, sqlite3.SQLITE_FUNCTION, sqlite3.SQLITE_RECURSIVE}
+
+def authorize_sql_action(action, *args):
+    return sqlite3.SQLITE_OK if action in ALLOWED_SQL_ACTIONS else sqlite3.SQLITE_DENY
+
 def execute_sql_query(query):
     try:
-        conn = sqlite3.connect("database.db")
-        cursor = conn.cursor()
-        cursor.execute(query)
-        results = cursor.fetchall()
-        conn.close()
-        return results
-    except sqlite3.Error as e:
+        conn = sqlite3.connect(f"{Path(DB_PATH).as_uri()}?mode=ro", uri=True)
+        try:
+            conn.set_authorizer(authorize_sql_action)
+            return conn.execute(query).fetchall()
+        finally:
+            conn.close()
+    except (sqlite3.Error, sqlite3.Warning) as e:  # Warning: multiple statements in one query
         return f"Database error: {e}"
 
 def generate_chatbot_response(prompt, query, results):
